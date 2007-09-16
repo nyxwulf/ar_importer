@@ -11,7 +11,7 @@ spec = Gem::Specification.new do |spec|
   spec.test_files = Dir['test/*']
   spec.has_rdoc = true
   spec.files = Dir['lib/*.rb'] + spec.test_files
-  spec.version = '0.1.1'
+  spec.version = '0.1.2'
   spec.add_dependency('piped')
   spec.add_dependency('activerecord', '~> 1')
 end

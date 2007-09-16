@@ -19,6 +19,7 @@ class DataLoader
   # * table_name - what table you want to load data into.  Defaults to the name of the file without the extension.
   # * file_name - path to the file you want to load
   # * parser - a PipeDelimited parser to parse the data, defaults to nil.  If nil, a new parser will be constructed using the defaults
+  # * progress - defaults to report every 250 rows loaded, if set to 0 progress results will be omitted.
   def initialize(options = {})
     merge_options options
     establish_connection
@@ -35,7 +36,8 @@ class DataLoader
     @options = {
       :table_name => nil,
       :adapter    => 'mysql',
-      :host       => 'localhost'
+      :host       => 'localhost',
+      :progress   =>  250
     }.merge(options)
   end
 
@@ -62,6 +64,7 @@ class DataLoader
   # PipeDelimited object in the options has as :parser.
   def load_data
     set_base_table(@options[:table_name])
+    progress = @options[:progress]
 
     pd = nil
     if @options[:parser] == nil
@@ -78,6 +81,11 @@ class DataLoader
         load = Loader.new(row)
         load.save
         @rows_loaded += 1
+        
+        if progress > 0 && (@rows_loaded % progress) == 0
+          puts "#{@rows_loaded} rows loaded"
+        end
+        
       rescue Exception => ex
         
         @rows_error += 1
