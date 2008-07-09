@@ -3,7 +3,7 @@ require 'rubygems'
 spec = Gem::Specification.new do |spec|
   spec.name = 'ar_importer'
   spec.summary = 'Simple data loader for ActiveRecord using DelimitedFile parser'
-  spec.description = %{A fast simple data loaded designed to work with ActiveRecord using the 
+  spec.description = %{A fast simple data loader designed to work with ActiveRecord using the 
       DelimitedFile parser gem.
   }
   spec.author = 'Doug Tolton'
