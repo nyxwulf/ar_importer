@@ -1,0 +1,4 @@
+title|body
+hello|this is my hello post
+blah|this is my blah post
+baby|My son was born last october

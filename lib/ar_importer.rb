@@ -1,8 +1,8 @@
-# =DataLoader is a simple ActiveRecord loader using the piped parser
+# =ARImporter is a simple ActiveRecord loader using the piped parser
 # The motivation is to create a simple way to load text files into mysql.
 
 require 'rubygems'
-require 'piped'
+require 'delimited_file'
 require 'active_record'
 
 # Loader class used to set the table name and load the data
@@ -11,7 +11,7 @@ class Loader < ActiveRecord::Base
 end
 
 # This is the main harness class that will do the work.
-class DataLoader
+class ARImporter
   # Options are:
   # * adapter - ActiveRecord adapter type, defaults to mysql
   # * host    - The host you are connecting to, defaults to localhost
@@ -20,7 +20,8 @@ class DataLoader
   # * file_name - path to the file you want to load
   # * parser - a PipeDelimited parser to parse the data, defaults to nil.  If nil, a new parser will be constructed using the defaults
   # * progress - defaults to report every 250 rows loaded, if set to 0 progress results will be omitted.
-  def initialize(options = {})
+  def initialize(options = {}, connection_parameters = {})
+    @connection_parameters = connection_parameters
     merge_options options
     establish_connection
     extract_table_name
@@ -35,18 +36,18 @@ class DataLoader
   def merge_options(options)
     @options = {
       :table_name => nil,
-      :adapter    => 'mysql',
-      :host       => 'localhost',
       :progress   =>  250
     }.merge(options)
   end
 
   # Establish a connection to the database using the supplied configuration
+  # :adapter  => 'mysql',
+  # :host     => 'localhost',
+  # :database => 'my_database'
+
   def establish_connection
     ActiveRecord::Base.establish_connection(
-      :adapter  => @options[:adapter],
-      :host     => @options[:host],
-      :database => @options[:database]
+      @connection_parameters
     )
   end
   
@@ -56,6 +57,7 @@ class DataLoader
       fn = @options[:file_name]
       @options[:table_name] = File.basename(fn).gsub(File.extname(fn), '')
     end
+    @options[:table_name]
   end
   
   # Load the data into the table.
@@ -68,7 +70,7 @@ class DataLoader
 
     pd = nil
     if @options[:parser] == nil
-      pd = PipeDelimited.new(@options[:file_name])
+      pd = DelimitedFile.new(@options[:file_name])
     else
       pd = @options[:parser]
     end
@@ -97,6 +99,10 @@ class DataLoader
         puts
       end
     end
+  end
+  
+  def database_rows
+    Loader.count(:all)
   end
   
   # dynamically bind Loader to the table_name we are loading data for.

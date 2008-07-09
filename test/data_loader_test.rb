@@ -1,5 +1,5 @@
 require 'test/unit'
-require File.join(File.dirname(__FILE__), '../lib', 'data_loader')
+require File.join(File.dirname(__FILE__), '../lib', 'ar_importer')
 
 # Note, before running this test suite, please execute the create.sql
 # file located in the test directory.
@@ -13,7 +13,7 @@ class PipedTest < Test::Unit::TestCase
     
     @options = {
       :file_name => "./people_data.txt",
-      :database => "data_loader_test"
+      :database => "ar_importer_test"
     }
     
     @dl = DataLoader.new(@options)
