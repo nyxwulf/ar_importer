@@ -1,1 +1,0 @@
-first<COL>last<COL>age<EOL>doug<COL>tolton<COL>32<EOL>  torrey  <COL>  tolton<COL>30  <EOL>lisa<COL>tolton<COL><EOL>
