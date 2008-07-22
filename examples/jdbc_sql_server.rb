@@ -1,6 +1,7 @@
 require 'rubygems'
 require 'delimited_file'
-require 'ar_importer'
+# require 'ar_importer'
+require File.join(File.dirname(__FILE__), '../lib/ar_importer')
 
 
 @options = {
@@ -20,5 +21,4 @@ require 'ar_importer'
 
 
 dl = DataLoader.new(@options, @connection_options)
-puts dl.extract_table_name
 dl.load_data

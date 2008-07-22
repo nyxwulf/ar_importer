@@ -1,30 +1,29 @@
-# =ARImporter is a simple ActiveRecord loader using the piped parser
-# The motivation is to create a simple way to load text files into mysql.
+# =ARImporter is a simple ActiveRecord loader using the delimited_file parser
+# The motivation is to create a simple way to load delimited text files into ActiveRecord models`.
 
 require 'rubygems'
 require 'delimited_file'
 require 'active_record'
 
-# Loader class used to set the table name and load the data
-class Loader < ActiveRecord::Base
-  
-end
 
 # This is the main harness class that will do the work.
 class ARImporter
   # Options are:
-  # * adapter - ActiveRecord adapter type, defaults to mysql
-  # * host    - The host you are connecting to, defaults to localhost
-  # * database - The database you want to work with, no default
   # * table_name - what table you want to load data into.  Defaults to the name of the file without the extension.
   # * file_name - path to the file you want to load
   # * parser - a PipeDelimited parser to parse the data, defaults to nil.  If nil, a new parser will be constructed using the defaults
   # * progress - defaults to report every 250 rows loaded, if set to 0 progress results will be omitted.
+  # 
+  # Connection options are valid options for an ActiveRecord connection for example:
+  # * adapter - ActiveRecord adapter type, no default
+  # * host    - The host you are connecting to, no default
+  # * database - The database you want to work with, no default
   def initialize(options = {}, connection_parameters = {})
     @connection_parameters = connection_parameters
     merge_options options
     establish_connection
-    extract_table_name
+    table_name
+    set_base_table
     @rows_loaded = 0
     @rows_error = 0
   end
@@ -36,7 +35,7 @@ class ARImporter
   def merge_options(options)
     @options = {
       :table_name => nil,
-      :progress   =>  250
+      :progress   =>  500
     }.merge(options)
   end
 
@@ -46,13 +45,14 @@ class ARImporter
   # :database => 'my_database'
 
   def establish_connection
-    ActiveRecord::Base.establish_connection(
-      @connection_parameters
-    )
+    ActiveRecord::Base.establish_connection(@connection_parameters)
+    # this require must come after establishing the base connection
+    # otherwise it will throw errors
+    require 'ar-extensions'
   end
   
   # If no table name is supplied, use the name of the file for the table name
-  def extract_table_name
+  def table_name
     if @options[:table_name].nil?
       fn = @options[:file_name]
       @options[:table_name] = File.basename(fn).gsub(File.extname(fn), '')
@@ -65,29 +65,43 @@ class ARImporter
   # if you need to specify something other than the default options pass a populated
   # PipeDelimited object in the options has as :parser.
   def load_data
-    set_base_table(@options[:table_name])
+    set_base_table
+    print "#{table_name}"
     progress = @options[:progress]
 
     pd = nil
     if @options[:parser] == nil
-      pd = DelimitedFile.new(@options[:file_name])
+      df = DelimitedFile.new(@options[:file_name])
     else
-      pd = @options[:parser]
+      df = @options[:parser]
     end
-
-      
     
-    pd.each_with_index do |row, index|
+    columns = []
+    values = []
+    eof = false
+    
+    while not eof
+        # pd.each_with_index do |row, index|
       begin
-        
-        load = Loader.new(row)
-        load.save
+        values << delete_blanks(df.raw_line)
+        columns = df.header_cols if @rows_loaded == 0
+        # load = eval "#{loader_name}.new"     
+        # load = Loader.new(row)
+        # load.attributes = row
+        # models << load
+        # load.save!
         @rows_loaded += 1
         
         if progress > 0 && (@rows_loaded % progress) == 0
-          puts "#{@rows_loaded} rows loaded"
+          eval "#{loader_name}.import(columns, values) "
+          values = []
+          print "."
+          
+          puts " #{@rows_loaded}" if progress > 0 && (@rows_loaded % 20_000) == 0
+          $stdout.flush
         end
-        
+      rescue EOFError
+        eof = true
       rescue Exception => ex
         
         @rows_error += 1
@@ -96,24 +110,40 @@ class ARImporter
         row.keys.each do |key|
           puts "row[#{key}] = #{row[key]}"
         end
-        puts
+        
+      end # begin / rescue
+      unless values == []
+        eval "#{loader_name}.import(columns, values)"
+        values = []
       end
-    end
+    end # pd.each_with_index
+    puts " #{@rows_loaded}"
+  end
+  
+  def delete_blanks(row)
+    row.collect {|item| item == '' ? nil : item}
   end
   
   def database_rows
-    Loader.count(:all)
+    eval "#{loader_name}.count(:all)"
   end
   
   # dynamically bind Loader to the table_name we are loading data for.
-  def set_base_table(table_name)
+  def set_base_table
     mystr = <<-EOL
-    class Loader < ActiveRecord::Base
+    class #{loader_name} < ActiveRecord::Base
       set_table_name '#{table_name}'
     end
+
+    # Avoid problems with STI and exporting data
+    #{loader_name}.inheritance_column = nil
     EOL
     
     eval(mystr)
+  end
+  
+  def loader_name
+    "Loader_#{table_name}"
   end
   
 end

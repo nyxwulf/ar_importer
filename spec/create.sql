@@ -10,7 +10,9 @@ use ar_importer_test;
 	
 create table people_data
 (
+  id  int auto_increment,
 	first varchar(50),
 	last varchar(50),
-	age		  int
+	age		  int,
+	primary key(id)
 );
