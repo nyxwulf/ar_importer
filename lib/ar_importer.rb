@@ -102,7 +102,7 @@ class ARImporter
         end
       rescue EOFError
         eof = true
-      rescue Exception => ex
+      rescue ActiveRecordError, Exception => ex
         
         @rows_error += 1
         puts "Error saving line #{index}"
