@@ -100,22 +100,20 @@ class ARImporter
           puts " #{@rows_loaded}" if progress > 0 && (@rows_loaded % 20_000) == 0
           $stdout.flush
         end
+
+        unless values == []
+          eval "#{loader_name}.import(columns, values)"
+          values = []
+        end
+
       rescue EOFError
         eof = true
-      rescue ActiveRecordError, Exception => ex
+      rescue Exception => ex
         
         @rows_error += 1
-        puts "Error saving line #{index}"
+        puts "Error saving line #{@rows_loaded}"
         p "Error Info: #{ex}"
-        row.keys.each do |key|
-          puts "row[#{key}] = #{row[key]}"
-        end
-        
       end # begin / rescue
-      unless values == []
-        eval "#{loader_name}.import(columns, values)"
-        values = []
-      end
     end # pd.each_with_index
     puts " #{@rows_loaded}"
   end
